@@ -1,103 +1,46 @@
 import tkinter as tk
-from tkinter import filedialog, colorchooser
-import cv2
-import numpy as np
+from tkinter import filedialog, simpledialog, colorchooser
 from PIL import Image, ImageTk
+import requests
+from io import BytesIO
+import giphy_client
+from giphy_client.rest import ApiException
 
-def wrap_text(text, font, max_width):
-    lines = []
-    words = text.split()
-    while words:
-        line = ''
-        while words and cv2.getTextSize(line + words[0], font[0], font[1], font[2])[0][0] <= max_width:
-            line += (words.pop(0) + ' ')
-        lines.append(line)
-    return lines
+# Initialize GIPHY client
+api_instance = giphy_client.DefaultApi()
+API_KEY = 'LWoWtvGY30VXXMlN5ScXo2YnKSRDkDnI'  # Replace this with your GIPHY API key
 
-def generate_m3m3(image, top_text, bottom_text, font=cv2.FONT_HERSHEY_SIMPLEX, font_scale=1, font_thickness=2, font_color=(255, 255, 255)):
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)  # Convert image to BGR format for OpenCV
+def search_giphy(tag, limit=10):
+    try:
+        response = api_instance.gifs_search_get(API_KEY, tag, limit=limit)
+        return [x.images.original.url for x in response.data]
+    except ApiException as e:
+        print("Exception when calling DefaultApi->gifs_search_get: %s\n" % e)
+        return []
 
-    top_lines = wrap_text(top_text, (font, font_scale, font_thickness), image.shape[1])
-    bottom_lines = wrap_text(bottom_text, (font, font_scale, font_thickness), image.shape[1])
-
-    y = 0
-    for line in top_lines:
-        (width, height), _ = cv2.getTextSize(line, font, font_scale, font_thickness)
-        cv2.putText(image, line, ((image.shape[1] - width) // 2, y + height), font, font_scale, font_color, font_thickness)
-        y += height
-
-    y = image.shape[0]
-    for line in bottom_lines:
-        (width, height), _ = cv2.getTextSize(line, font, font_scale, font_thickness)
-        cv2.putText(image, line, ((image.shape[1] - width) // 2, y), font, font_scale, font_color, font_thickness)
-        y -= height
-
-    return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Convert back to RGB format
-
-image_dict = {
-    'original': None,
-    'tkinter': None
-}
+def fetch_image(url):
+    response = requests.get(url)
+    return Image.open(BytesIO(response.content))
 
 def create_gui():
     window = tk.Tk()
     window.title("M3m3 Generator")
 
-    global font_color
-    font_color = (255, 255, 255)
+    def search_meme_template():
+        tag = simpledialog.askstring("Search", "Enter meme template tag:")
+        if tag:
+            urls = search_giphy(tag)
+            if urls:
+                # For simplicity, we'll just fetch the first meme template
+                # In a more advanced version, you can provide a gallery for the user to choose from
+                img = fetch_image(urls[0])
+                img.thumbnail((300, 300))
+                img_tk = ImageTk.PhotoImage(img)
+                preview_label.config(image=img_tk)
+                preview_label.image = img_tk
 
-    def open_image():
-        file_path = filedialog.askopenfilename()
-        if file_path:
-            img = cv2.imread(file_path)
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert to RGB for PIL compatibility
-            pil_img = Image.fromarray(img)
-            pil_img.thumbnail((300, 300))
-            image_dict['original'] = np.array(pil_img)
-            img_tk = ImageTk.PhotoImage(pil_img)
-            image_dict['tkinter'] = img_tk
-            preview_label.config(image=img_tk)
-
-    def pick_color():
-        global font_color
-        chosen_color = colorchooser.askcolor()[1]
-        if chosen_color:
-            font_color = tuple(int(chosen_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
-
-    def generate():
-        top_text = top_text_entry.get()
-        bottom_text = bottom_text_entry.get()
-        m3m3 = generate_m3m3(image_dict['original'].copy(), top_text, bottom_text, font_color=font_color)
-        pil_img = Image.fromarray(m3m3)
-        img_tk = ImageTk.PhotoImage(pil_img)
-        image_dict['tkinter'] = img_tk
-        image_dict['original'] = m3m3
-        preview_label.config(image=img_tk)
-
-    def save_m3m3():
-        file_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png"), ("JPEG files", "*.jpg"), ("All files", "*.*")])
-        if file_path:
-            cv2.imwrite(file_path, cv2.cvtColor(image_dict['original'], cv2.COLOR_RGB2BGR))
-
-    open_button = tk.Button(window, text="Open Image", command=open_image)
-    open_button.pack(pady=20)
-
-    top_text_entry = tk.Entry(window, width=40)
-    top_text_entry.pack(pady=20)
-    top_text_entry.insert(0, "Top Text")
-
-    bottom_text_entry = tk.Entry(window, width=40)
-    bottom_text_entry.pack(pady=20)
-    bottom_text_entry.insert(0, "Bottom Text")
-
-    color_button = tk.Button(window, text="Pick Font Color", command=pick_color)
-    color_button.pack(pady=10)
-
-    generate_button = tk.Button(window, text="Generate M3m3", command=generate)
-    generate_button.pack(pady=20)
-
-    save_button = tk.Button(window, text="Save M3m3", command=save_m3m3)
-    save_button.pack(pady=20)
+    search_button = tk.Button(window, text="Search Meme Template", command=search_meme_template)
+    search_button.pack(pady=20)
 
     preview_label = tk.Label(window)
     preview_label.pack(pady=20)
