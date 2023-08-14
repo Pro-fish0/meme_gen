@@ -14,7 +14,7 @@ def wrap_text(text, font, max_width):
         lines.append(line)
     return lines
 
-def generate_meme(image, top_text, bottom_text, font=cv2.FONT_HERSHEY_SIMPLEX, font_scale=1, font_thickness=2, font_color=(255, 255, 255)):
+def generate_m3m3(image, top_text, bottom_text, font=cv2.FONT_HERSHEY_SIMPLEX, font_scale=1, font_thickness=2, font_color=(255, 255, 255)):
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)  # Convert image to BGR format for OpenCV
 
     top_lines = wrap_text(top_text, (font, font_scale, font_thickness), image.shape[1])
@@ -41,7 +41,7 @@ image_dict = {
 
 def create_gui():
     window = tk.Tk()
-    window.title("Meme Generator")
+    window.title("M3m3 Generator")
 
     global font_color
     font_color = (255, 255, 255)
@@ -67,14 +67,14 @@ def create_gui():
     def generate():
         top_text = top_text_entry.get()
         bottom_text = bottom_text_entry.get()
-        meme = generate_meme(image_dict['original'].copy(), top_text, bottom_text, font_color=font_color)
-        pil_img = Image.fromarray(meme)
+        m3m3 = generate_m3m3(image_dict['original'].copy(), top_text, bottom_text, font_color=font_color)
+        pil_img = Image.fromarray(m3m3)
         img_tk = ImageTk.PhotoImage(pil_img)
         image_dict['tkinter'] = img_tk
-        image_dict['original'] = meme
+        image_dict['original'] = m3m3
         preview_label.config(image=img_tk)
 
-    def save_meme():
+    def save_m3m3():
         file_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png"), ("JPEG files", "*.jpg"), ("All files", "*.*")])
         if file_path:
             cv2.imwrite(file_path, cv2.cvtColor(image_dict['original'], cv2.COLOR_RGB2BGR))
@@ -93,10 +93,10 @@ def create_gui():
     color_button = tk.Button(window, text="Pick Font Color", command=pick_color)
     color_button.pack(pady=10)
 
-    generate_button = tk.Button(window, text="Generate Meme", command=generate)
+    generate_button = tk.Button(window, text="Generate M3m3", command=generate)
     generate_button.pack(pady=20)
 
-    save_button = tk.Button(window, text="Save Meme", command=save_meme)
+    save_button = tk.Button(window, text="Save M3m3", command=save_m3m3)
     save_button.pack(pady=20)
 
     preview_label = tk.Label(window)
